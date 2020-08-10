@@ -1,6 +1,7 @@
 package ginrummy;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 import java.util.Stack;
 
@@ -68,6 +69,8 @@ public class Cost_Payoff_Player implements GinRummyPlayer{
 		// Discard a random card (not just drawn face up) leaving minimal deadwood points.
 		int minDeadwood = Integer.MAX_VALUE;
 		ArrayList<Card> candidateCards = new ArrayList<Card>();
+		ArrayList<Integer> diffCosts = new ArrayList<Integer>();
+		
 		for (Card card : cards) {
 			// Cannot draw and discard face up card.
 			if (card == drawnCard && drawnCard == faceUpCard)
@@ -80,23 +83,130 @@ public class Cost_Payoff_Player implements GinRummyPlayer{
 				continue;
 			
 			ArrayList<Card> remainingCards = (ArrayList<Card>) cards.clone();
-			remainingCards.remove(card);
+			//remainingCards.remove(card);
 			ArrayList<ArrayList<ArrayList<Card>>> bestMeldSets = GinRummyUtil.cardsToBestMeldSets(remainingCards);
+			
 			int deadwood = bestMeldSets.isEmpty() ? GinRummyUtil.getDeadwoodPoints(remainingCards) : GinRummyUtil.getDeadwoodPoints(bestMeldSets.get(0), remainingCards);
-			if (deadwood <= minDeadwood) {
-				if (deadwood < minDeadwood) {
-					minDeadwood = deadwood;
-					candidateCards.clear();
+			
+			int cost=0;	
+			int point = 0;
+			
+			System.out.println("Card Rank: " + card.getRank());
+			System.out.println("Card Suit: " + card.getSuit());
+			System.out.println();
+//			ArrayList<Card> potentialCards = (ArrayList<Card>) remainingCards.clone();
+			
+			
+			for(int i = 0; i < remainingCards.size(); i++) {
+				
+				
+				System.out.println("Remaining Rank: " + remainingCards.get(i).getRank());
+				System.out.println("Remaining Suit: " + remainingCards.get(i).getSuit());
+				
+				//same suit, diff rank, cost 0
+				if (card.getSuit() == remainingCards.get(i).getSuit()) {
+					System.out.println("Same suit: " + card + "," + remainingCards.get(i));
+					point = Math.abs(card.getRank() - remainingCards.get(i).getRank());
+					cost += point;
 				}
-				candidateCards.add(card);
+				
+				//if card contains in sets
+				else if (!bestMeldSets.isEmpty() && bestMeldSets.get(0).get(0).contains(card)) {
+					
+					System.out.println("contain in sets: " + card + "," + remainingCards.get(i));
+					point = -100;
+					cost += point;
+				
+				}
+				
+				//diff suit, same rank, cost 0
+				else if (card.getRank() == remainingCards.get(i).getRank()) {
+					System.out.println("Same rank: " + card + "," + remainingCards.get(i));
+					point = 0;
+					cost += point;
+					
+				}
+				//anything else cost +50
+				else {
+					System.out.println("Else: " + card + "," + remainingCards.get(i));
+					point = 50;
+					cost += point;
+//					candidateCards.clear();
+//					candidateCards.add(card);
+				}
+				
+				if(!bestMeldSets.isEmpty()) {
+					System.out.println("best meld contains: " + bestMeldSets.get(0).get(0).contains(card));
+				}
+	
+				System.out.println("Point: " + point);
+				System.out.println();
+			}
+					
+			diffCosts.add(cost);
+			System.out.println("unsort diffCost: " + diffCosts);
+			System.out.println("Cost: " + cost);
+			System.out.println("Card: " + card);
+			System.out.println("Cards: " + cards);
+			System.out.println("RemainingCards: " + remainingCards);
+			System.out.println("drawDiscard: " + drawDiscard);
+			System.out.println("bestMeldSets: " + bestMeldSets);
+			//System.out.println("bestMeldSets size: " + bestMeldSets.get(0).get(0).contains(0));
+//			System.out.println("best meld: " + bestMeldSets.get(0).get(0).get(1));
+			System.out.println();
+			
+		}
+		
+		
+		ArrayList<Integer> nstore = new ArrayList<Integer>(diffCosts); // may need to be new ArrayList(nfit)
+		Collections.sort(nstore);
+		for (int n = 0; n < diffCosts.size(); n++){
+		    nstore.add(n, diffCosts.indexOf(nstore.remove(n)));
+		}
+		Collections.sort(diffCosts);
+		
+		int max = 0;
+		int maxI = -1;
+		for (int i = 0; i < diffCosts.size(); i++) {
+			if (diffCosts.get(i) > max) { 
+				max = diffCosts.get(i);
+				maxI = i;
 			}
 		}
-		Card discard = candidateCards.get(random.nextInt(candidateCards.size()));
+		
+		System.out.println("maxI: " + maxI);
+		System.out.println("nstore: " + nstore);
+		System.out.println("sorted diffCosts: " + diffCosts);
+		
+		System.out.println("nstore size: " + nstore.size());
+		
+//		if(nstore.get(nstore.size()-2) == nstore.get(nstore.size()-1)) {
+//			if(cards.get(nstore.get(nstore.size()-2)).getRank() > cards.get(nstore.size()-1).getRank()) {
+//				System.out.println("Card 9 larger deadwood");
+//				candidateCards.clear();
+//				candidateCards.add(cards.get(nstore.get(nstore.size()-2)));
+//			}
+//			else if(cards.get(nstore.size()-1).getRank() > cards.get(nstore.size()-2).getRank()) {
+//				System.out.println("Card 10 larger deadwood");
+//				candidateCards.clear();
+//				candidateCards.add(cards.get(nstore.size()-1));
+//			}
+//			
+//		}
+//		else {
+			System.out.println("nstore last card: " + nstore.get(nstore.size()-1));
+			candidateCards.clear();
+			candidateCards.add(cards.get(nstore.get(nstore.size()-1)));
+//		}
+		
+		System.out.println("CandidateCards: " + candidateCards );
+		Card discard = candidateCards.get(0);
 		// Prevent future repeat of draw, discard pair.
 		ArrayList<Card> drawDiscard = new ArrayList<Card>();
 		drawDiscard.add(drawnCard);
 		drawDiscard.add(discard);
 		drawDiscardBitstrings.add(GinRummyUtil.cardsToBitstring(drawDiscard));
+		System.out.println("Discard: " + discard);
 		return discard;
 	}
 
